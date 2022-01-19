@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message AirTemperature {
+    float temperature = 1;
+}
+
+service Air {
+    rpc turnOn(AirTemperature) returns (AirTemperature) {}
+    rpc turnOff(AirTemperature) returns (AirTemperature) {}
+}
