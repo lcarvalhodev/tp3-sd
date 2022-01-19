@@ -3,8 +3,7 @@
 import socket
 import threading
 import grpc
-from concurrent import futures
-import pika, sys, os, time
+import pika, sys, os
 import light_pb2
 import light_pb2_grpc
 import air_pb2
@@ -126,7 +125,6 @@ def sub_light():
         valor = int(float(body.decode()))
         global light_sensor 
         light_sensor.append(valor)
-
 
     channel.basic_consume(queue='lights', on_message_callback=callback, auto_ack=True)
 
