@@ -1,10 +1,7 @@
-import time
-from flask import Flask, url_for, jsonify
+from flask import Flask
 from flask import render_template
 from flask import request
 import socket
-import pdb
-import pickle
 import time
 import json
 PORT = 5000
@@ -24,7 +21,6 @@ def create():
     s.send(result.encode('utf-8'))
     
     return render_template('index.html')
-
 
 if __name__ == '__main__':
     app.run(port=8080, debug=True)

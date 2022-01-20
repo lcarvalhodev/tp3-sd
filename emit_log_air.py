@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import pika
-import sys
 import time
-import random
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='localhost'))

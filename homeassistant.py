@@ -43,13 +43,18 @@ def initConnection():
         try:
             light_status = ""
             smoke_status = ""
+            air_status = ""
             conn, addr = sock.accept()
             conn.setblocking(False)
             clientes.append(conn)
-            if int(air_value[len(air_value)-1]) >= 0 and len(air_value)>1:
-                valueTemp = int(air_value[len(air_value)-1])
+                
+            if len(air_value)>1:
+                if air_value[len(air_value)-1] >= 1:
+                    air_status = "On"
+                else:
+                    air_status = "Off"
             else:
-                valueTemp = air_sensor[len(air_sensor)-1]
+                air_status = "Off"
             
             if len(light_value)>1:
                 if light_value[len(light_value)-1] >= 1:
@@ -72,15 +77,20 @@ def initConnection():
             conn.send(("""
                 <html>
                 <meta charset="utf-8"/>
-                    <body>
-                        <h1>TP3 - SD</h1>
-                        <h3>Lights: {}</h3>
-                        <h3>Temperature (C°): {}</h3>
-                        <h3>Smoke sensor: {}</h3>
-                        <br><a href="http://localhost:8080/">Change Values</a>
-                    </body>
+                <body style=" text-align: center">
+                    <h1>Home Assistant - Status</h1>
+                    <img src="https://icon-library.com/images/light-bulb-icon-transparent/light-bulb-icon-transparent-16.jpg" width="50" height="50"/>
+                    <br><br>
+                    <h4>Lights: <mark class="red">{}</mark></h4>
+                    <img src="https://icon-library.com/images/air-icon/air-icon-18.jpg" width="50" height="50"/>
+                    <br><br>
+                    <h4>Air Conditioner: <mark class="red">{}</mark></h4>
+                    <img src="https://images.vexels.com/media/users/3/217793/isolated/preview/0956022a968a707c607256b3131d1f7f-abundant-smoke-icon.png" width="50" height="50"/>
+                    <br><br>
+                    <h4>Smoke sensor: <mark class="red">{}</mark></h4>
+                </body>
                 </html>
-            """).format(light_status, valueTemp, smoke_status).encode('utf-8'))
+            """).format(light_status, air_status, smoke_status).encode('utf-8'))
         except:
             pass
 
@@ -107,7 +117,7 @@ def form(dataJson):
     else:
         light(0)
     if int(dataJson['air']) == 1:
-        air(float(dataJson['temperature']))
+        air(1)
     else:
         air(0)
     if int(dataJson['smoke']) > 0:
@@ -163,7 +173,7 @@ def smoke(comando):
     
     channel = grpc.insecure_channel('localhost:50053')
     stub = smoke_pb2_grpc.SmokeStub(channel)
-    if float(comando)>=0:
+    if float(comando)>0:
         status = smoke_pb2.SmokeStatus(status=float(comando))
         response = stub.turnOn(status)
     else:
@@ -223,7 +233,6 @@ while True:
         print('Proccess Finished')
         try:
             sys.exit(0)
-            sock.close()
         except SystemExit:
             sock.close()
             os._exit(0)
