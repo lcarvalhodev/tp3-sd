@@ -20,7 +20,7 @@ class LightServicer(pb2_grpc.LightServicer):
         return response
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     pb2_grpc.add_LightServicer_to_server(LightServicer(), server)
     print('Server is running on port 50052.')
     server.add_insecure_port('[::]:50052')

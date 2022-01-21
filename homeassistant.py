@@ -19,26 +19,20 @@ sock.listen(10)
 sock.setblocking(False)
 clientes = []
 
-light_sensor = []
-light_sensor.append(0)
 light_value = []
 light_value.append(0)
 
-air_sensor = []
-air_sensor.append(0)
 air_value = []
 air_value.append(0)
 
-smoke_sensor = []
-smoke_sensor.append(0)
 smoke_value = []
 smoke_value.append(0)
 
 def initConnection():
-    global light_sensor
     global light_value
     global clientes
     global sock
+    global smoke_teste
     while True:
         try:
             light_status = ""
@@ -54,7 +48,10 @@ def initConnection():
                 else:
                     air_status = "Off"
             else:
-                air_status = "Off"
+                if air_callback >= 1:
+                    air_status = "On"
+                else:
+                    air_status = "Off"
             
             if len(light_value)>1:
                 if light_value[len(light_value)-1] >= 1:
@@ -62,7 +59,10 @@ def initConnection():
                 else:
                     light_status = "Off"
             else:
-                light_status = "Off"
+                if light_callback >= 1:
+                    light_status = "On"
+                else:
+                    light_status = "Off"
             
             if len(smoke_value)>1:
                 if smoke_value[len(smoke_value)-1] >= 1:
@@ -70,7 +70,10 @@ def initConnection():
                 else:
                     smoke_status = "No Fire"
             else:
-                smoke_status = "No Fire"
+                if smoke_callback >= 1:
+                    smoke_status = "Fire!!!"
+                else:
+                    smoke_status = "No Fire"
             conn.send(('HTTP/1.0 200 OK\n').encode('utf-8'))
             conn.send(('Content-Type: text/html\n').encode('utf-8'))
             conn.send(('\n').encode('utf-8'))
@@ -105,7 +108,6 @@ def proccess():
                     dataDecoded = data.decode('utf-8')
                     if data:
                         dataJson = json.loads(dataDecoded)
-                        print(dataJson)
                         form(dataJson)
                         
                 except:
@@ -120,10 +122,10 @@ def form(dataJson):
         air(1)
     else:
         air(0)
-    if int(dataJson['smoke']) > 0:
-        smoke(int(dataJson['smoke']))
+    if int(dataJson['smoke']) == 1:
+        smoke(1)
     else:
-        smoke(int(dataJson['smoke']))
+        smoke(0)
 
 def sub_light():
     connection = pika.BlockingConnection(
@@ -133,8 +135,8 @@ def sub_light():
 
     def callback(ch, method, properties, body):
         valor = int(float(body.decode()))
-        global light_sensor 
-        light_sensor.append(valor)
+        global light_callback
+        light_callback = valor
 
     channel.basic_consume(queue='lights', on_message_callback=callback, auto_ack=True)
 
@@ -146,9 +148,9 @@ def sub_air():
     channel = connection.channel()
     channel.queue_declare(queue='air')
     def callback(ch, method, properties, body):
-        valor = int(float(body.decode()))
-        global air_sensor
-        air_sensor.append(valor) 
+        valor = int(float(body.decode())) 
+        global air_callback
+        air_callback = valor
 
     channel.basic_consume(queue='air', on_message_callback=callback, auto_ack=True)
     
@@ -162,27 +164,41 @@ def sub_smoke():
     channel.queue_declare(queue='smoke')
     def callback(ch, method, properties, body):
         valor = body.decode()
-        global smoke_sensor
-        smoke_sensor.append(int(valor))
+        global smoke_callback
+        smoke_callback = valor
     
     channel.basic_consume(queue='smoke', on_message_callback=callback, auto_ack=True)
 
     channel.start_consuming()
 
-def smoke(comando):
+def start_threads(): 
+    t = threading.Thread(target=sub_light)
+    t.start()
+
+    t2 = threading.Thread(target=sub_air)
+    t2.start()
+
+    t3=threading.Thread(target=sub_smoke)
+    t3.start()
+
+    aceptar = threading.Thread(target=initConnection)
+    aceptar.start()
+
+    procesar = threading.Thread(target=proccess)
+    procesar.start()
+
     
-    channel = grpc.insecure_channel('localhost:50053')
-    stub = smoke_pb2_grpc.SmokeStub(channel)
+def light(comando):
+    channel = grpc.insecure_channel('localhost:50052')
+    stub = light_pb2_grpc.LightStub(channel)
+    status = light_pb2.LightStatus(status=1)
+    
     if float(comando)>0:
-        status = smoke_pb2.SmokeStatus(status=float(comando))
         response = stub.turnOn(status)
     else:
-        status = smoke_pb2.SmokeStatus(status=float(comando))
         response = stub.turnOff(status)
 
-
-    smoke_value.append(response.status)
-
+    light_value.append(response.status)
 
 def air(comando):
     channel = grpc.insecure_channel('localhost:50051')
@@ -196,34 +212,21 @@ def air(comando):
         response = stub.turnOff(status)
 
     air_value.append(response.temperature)
-
-def light(comando):
-    channel = grpc.insecure_channel('localhost:50052')
-    stub = light_pb2_grpc.LightStub(channel)
-    status = light_pb2.LightStatus(status=1)
     
+def smoke(comando):
+    
+    channel = grpc.insecure_channel('localhost:50053')
+    stub = smoke_pb2_grpc.SmokeStub(channel)
     if float(comando)>0:
+        status = smoke_pb2.SmokeStatus(status=float(comando))
         response = stub.turnOn(status)
     else:
+        status = smoke_pb2.SmokeStatus(status=float(comando))
         response = stub.turnOff(status)
 
-    light_value.append(response.status)
-    
+    smoke_value.append(response.status)
 
-t = threading.Thread(target=sub_light)
-t.start()
-
-t2 = threading.Thread(target=sub_air)
-t2.start()
-
-t3=threading.Thread(target=sub_smoke)
-t3.start()
-
-aceptar = threading.Thread(target=initConnection)
-aceptar.start()
-
-procesar = threading.Thread(target=proccess)
-procesar.start()
+start_threads()
 
 while True:
     try: 

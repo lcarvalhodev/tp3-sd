@@ -8,8 +8,8 @@ connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='localhost'))
 channel = connection.channel()
 
-channel.queue_declare(queue='air')
+channel.queue_declare(queue='lights')
 
 while True:
-	channel.basic_publish(exchange='', routing_key='air', body=str(1))
+	channel.basic_publish(exchange='', routing_key='lights', body=str(1))
 	time.sleep(5)
