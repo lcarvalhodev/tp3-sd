@@ -9,5 +9,7 @@ channel = connection.channel()
 channel.queue_declare(queue='smoke')
 
 while True:
-	channel.basic_publish(exchange='', routing_key='smoke', body=str(1))
-	time.sleep(5)
+    channel.basic_publish(exchange='', routing_key='smoke', body=str(1))
+    time.sleep(2)
+    channel.basic_publish(exchange='', routing_key='smoke', body=str(0))
+    time.sleep(2)

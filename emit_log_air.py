@@ -10,4 +10,4 @@ channel.queue_declare(queue='air')
 
 while True:
 	channel.basic_publish(exchange='', routing_key='air', body=str(1))
-	time.sleep(5)
+	time.sleep(2)
